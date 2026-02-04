@@ -1,0 +1,498 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>障害年金申請管理システム - 望月静香様案件</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.9.1/chart.min.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@300;400;500;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Noto Sans JP', sans-serif;
+            background-color: #f5f5f0; /* Warm neutral background */
+            color: #4a4a4a;
+        }
+        .chart-container {
+            position: relative;
+            width: 100%;
+            max-width: 600px;
+            margin-left: auto;
+            margin-right: auto;
+            height: 250px;
+            max-height: 300px;
+        }
+        @media (min-width: 768px) {
+            .chart-container {
+                height: 300px;
+            }
+        }
+        .nav-item.active {
+            background-color: #e2e8f0;
+            border-left: 4px solid #64748b;
+            font-weight: 700;
+        }
+        .timeline-line {
+            position: absolute;
+            left: 24px;
+            top: 0;
+            bottom: 0;
+            width: 2px;
+            background-color: #cbd5e1;
+            z-index: 0;
+        }
+        .task-checkbox:checked + label {
+            text-decoration: line-through;
+            color: #94a3b8;
+        }
+    </style>
+    <!-- Chosen Palette: Professional Calm (Warm Gray, Slate Blue, Sage Green) to evoke trust and stability for legal/medical context -->
+    <!-- Application Structure Plan: Dashboard (Overview & Progress) -> Timeline (History Visualization) -> ToDo (Actionable Items) -> Notes (Qualitative Data). Designed to move from understanding the big picture to executing specific tasks. -->
+    <!-- Visualization & Content Choices: Doughnut Chart for Progress (Inform), Custom HTML Timeline for Medical History (Organize), Checkbox Lists for ToDo (Goal: Change/Track). No SVG/Mermaid used. -->
+    <!-- CONFIRMATION: NO SVG graphics used. NO Mermaid JS used. -->
+</head>
+<body class="bg-[#f5f5f0] h-screen flex flex-col overflow-hidden">
+
+    <!-- Header -->
+    <header class="bg-white shadow-sm z-10">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
+            <div class="flex items-center">
+                <div class="text-2xl font-bold text-slate-700 mr-4">障害年金申請サポート</div>
+                <div class="bg-slate-100 text-slate-600 px-3 py-1 rounded-full text-sm font-medium">案件ID: 2023-M-001 望月 静香 様</div>
+            </div>
+            <div class="flex items-center space-x-4">
+                <div class="text-sm text-right hidden sm:block">
+                    <div class="text-slate-500">担当社労士</div>
+                    <div class="font-bold text-xs sm:text-sm">社会保険労務士法人キャリアデザイン<br>杉山史和</div>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Layout -->
+    <div class="flex flex-1 overflow-hidden">
+        
+        <!-- Sidebar Navigation -->
+        <nav class="w-64 bg-white border-r border-gray-200 hidden md:flex flex-col">
+            <div class="p-6">
+                <h3 class="text-xs uppercase text-gray-400 font-bold tracking-wider mb-4">メニュー</h3>
+                <ul class="space-y-2">
+                    <li>
+                        <button onclick="switchView('dashboard')" id="nav-dashboard" class="nav-item w-full text-left px-4 py-3 rounded-r-lg text-slate-600 hover:bg-slate-50 transition-colors active">
+                            📊 ダッシュボード・要件
+                        </button>
+                    </li>
+                    <li>
+                        <button onclick="switchView('timeline')" id="nav-timeline" class="nav-item w-full text-left px-4 py-3 rounded-r-lg text-slate-600 hover:bg-slate-50 transition-colors">
+                            📅 病歴・受診タイムライン
+                        </button>
+                    </li>
+                    <li>
+                        <button onclick="switchView('todo')" id="nav-todo" class="nav-item w-full text-left px-4 py-3 rounded-r-lg text-slate-600 hover:bg-slate-50 transition-colors">
+                            ✅ アクションプラン (ToDo)
+                        </button>
+                    </li>
+                    <li>
+                        <button onclick="switchView('notes')" id="nav-notes" class="nav-item w-full text-left px-4 py-3 rounded-r-lg text-slate-600 hover:bg-slate-50 transition-colors">
+                            📝 ヒアリング詳細メモ
+                        </button>
+                    </li>
+                </ul>
+            </div>
+            <div class="mt-auto p-6 bg-slate-50">
+                <div class="text-xs text-slate-500 mb-2">申請目標</div>
+                <div class="font-bold text-slate-800 text-lg">障害基礎年金 2級</div>
+                <div class="text-xs text-slate-400 mt-1">精神（PTSD・うつ病）</div>
+            </div>
+        </nav>
+
+        <!-- Mobile Nav (Bottom) -->
+        <div class="md:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 flex justify-around p-2 z-50">
+            <button onclick="switchView('dashboard')" class="p-2 text-slate-600 text-xs flex flex-col items-center"><span>📊</span><span>要件</span></button>
+            <button onclick="switchView('timeline')" class="p-2 text-slate-600 text-xs flex flex-col items-center"><span>📅</span><span>病歴</span></button>
+            <button onclick="switchView('todo')" class="p-2 text-slate-600 text-xs flex flex-col items-center"><span>✅</span><span>ToDo</span></button>
+            <button onclick="switchView('notes')" class="p-2 text-slate-600 text-xs flex flex-col items-center"><span>📝</span><span>メモ</span></button>
+        </div>
+
+        <!-- Content Area -->
+        <main class="flex-1 overflow-y-auto p-4 sm:p-8 pb-20 md:pb-8 bg-[#f5f5f0]">
+            
+            <!-- VIEW: DASHBOARD -->
+            <div id="view-dashboard" class="space-y-6 max-w-5xl mx-auto">
+                <div class="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
+                    <h2 class="text-xl font-bold text-slate-800 mb-2">案件概要と進捗</h2>
+                    <p class="text-slate-600 mb-6">ヒアリング内容に基づく、障害年金受給要件（3要件）の充足状況と、申請準備全体の進捗サマリーです。</p>
+                    
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-8 items-center">
+                        <!-- Chart Section -->
+                        <div class="bg-slate-50 rounded-lg p-4">
+                            <h3 class="text-sm font-bold text-center text-slate-500 mb-4">タスク消化率・申請準備完了度</h3>
+                            <div class="chart-container">
+                                <canvas id="progressChart"></canvas>
+                            </div>
+                        </div>
+
+                        <!-- Requirements Checklist Section -->
+                        <div class="space-y-4">
+                            <h3 class="text-lg font-bold text-slate-700">受給の3要件チェック</h3>
+                            
+                            <!-- Req 1 -->
+                            <div class="p-4 border rounded-lg bg-red-50 border-red-100">
+                                <div class="flex items-start">
+                                    <div class="flex-shrink-0 mt-1 mr-3 text-red-500 font-bold">①</div>
+                                    <div>
+                                        <h4 class="font-bold text-red-800">初診日があること</h4>
+                                        <p class="text-sm text-red-700 mt-1">【要調査】約15年前（23〜24歳頃）。久保田内科での記録有無が最大の争点。</p>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Req 2 -->
+                            <div class="p-4 border rounded-lg bg-green-50 border-green-100">
+                                <div class="flex items-start">
+                                    <div class="flex-shrink-0 mt-1 mr-3 text-green-600 font-bold">②</div>
+                                    <div>
+                                        <h4 class="font-bold text-green-800">保険料納付要件</h4>
+                                        <p class="text-sm text-green-700 mt-1">【見込みあり】第3号被保険者（主婦）期間中のため、要件を満たしている可能性が高い。</p>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Req 3 -->
+                            <div class="p-4 border rounded-lg bg-blue-50 border-blue-100">
+                                <div class="flex items-start">
+                                    <div class="flex-shrink-0 mt-1 mr-3 text-blue-600 font-bold">③</div>
+                                    <div>
+                                        <h4 class="font-bold text-blue-800">障害の状態（等級）</h4>
+                                        <p class="text-sm text-blue-700 mt-1">【ターゲット：2級】「日常生活に著しい支障がある」状態。外出困難、パニック、妄想等の症状あり。</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Next Action Highlight -->
+                <div class="bg-amber-50 border-l-4 border-amber-400 p-4 rounded-r-lg shadow-sm">
+                    <div class="flex">
+                        <div class="flex-shrink-0">
+                            <span class="text-2xl">⚠️</span>
+                        </div>
+                        <div class="ml-3">
+                            <h3 class="text-sm font-bold text-amber-800">最優先アクション</h3>
+                            <div class="mt-2 text-sm text-amber-700">
+                                <p><strong>久保田内科へのカルテ確認</strong>が必要です。15年前の記録が残っているかどうかが、受給可否の大きな分かれ目となります。</p>
+                            </div>
+                            <div class="mt-4">
+                                <button onclick="switchView('todo')" class="text-sm font-medium text-amber-800 hover:text-amber-900 underline">ToDoリストへ移動する &rarr;</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- VIEW: TIMELINE -->
+            <div id="view-timeline" class="hidden max-w-4xl mx-auto space-y-6">
+                <div class="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
+                    <h2 class="text-xl font-bold text-slate-800 mb-2">病歴・受診状況タイムライン</h2>
+                    <p class="text-slate-600 mb-6">ヒアリングから判明した受診履歴です。「初診日」を特定し、空白期間（未受診期間）を把握するために使用します。</p>
+
+                    <div class="relative pl-8 py-2">
+                        <!-- Vertical Line -->
+                        <div class="timeline-line"></div>
+
+                        <!-- Item 1: 15 Years Ago -->
+                        <div class="mb-8 relative z-10">
+                            <div class="absolute -left-10 mt-1.5 w-6 h-6 bg-red-500 rounded-full border-4 border-white shadow flex items-center justify-center text-white text-xs font-bold">!</div>
+                            <div class="bg-white p-4 rounded-lg border-2 border-red-100 shadow-sm ml-4 hover:shadow-md transition-shadow">
+                                <div class="flex justify-between items-start mb-2">
+                                    <span class="bg-red-100 text-red-800 text-xs font-bold px-2 py-1 rounded">初診日候補</span>
+                                    <span class="text-sm text-gray-500">約15年前（23〜24歳頃）</span>
+                                </div>
+                                <h3 class="font-bold text-lg text-slate-800">久保田内科</h3>
+                                <p class="text-sm text-slate-600 mt-2">
+                                    前の夫とのトラブル、育児疲れで受診。<br>
+                                    安定剤（睡眠導入剤等）を処方される。<br>
+                                    ※当時のカルテ確認が必須。
+                                </p>
+                            </div>
+                        </div>
+
+                        <!-- Item 2: Internal Medicine Continued (Updated from Gap) -->
+                        <div class="mb-8 relative z-10">
+                            <div class="absolute -left-10 mt-1.5 w-6 h-6 bg-teal-500 rounded-full border-4 border-white shadow"></div>
+                            <div class="bg-teal-50 p-4 rounded-lg border border-teal-200 ml-4">
+                                <div class="flex justify-between items-start mb-2">
+                                    <span class="bg-teal-100 text-teal-800 text-xs font-bold px-2 py-1 rounded">受診継続</span>
+                                    <span class="text-sm text-gray-500">上記期間〜現在</span>
+                                </div>
+                                <h3 class="font-bold text-lg text-slate-800">内科受診期間（投薬継続）</h3>
+                                <p class="text-sm text-slate-600 mt-2">
+                                    精神科専門医ではないが、内科にて継続的に薬（安定剤・睡眠導入剤等）の処方を受けていた期間。<br>
+                                    ※「治療の中断」ではないことを示す重要な期間。
+                                </p>
+                            </div>
+                        </div>
+
+                        <!-- Item 3: Current -->
+                        <div class="mb-0 relative z-10">
+                            <div class="absolute -left-10 mt-1.5 w-6 h-6 bg-blue-500 rounded-full border-4 border-white shadow"></div>
+                            <div class="bg-blue-50 p-4 rounded-lg border border-blue-200 ml-4">
+                                <div class="flex justify-between items-start mb-2">
+                                    <span class="bg-blue-100 text-blue-800 text-xs font-bold px-2 py-1 rounded">障害認定日・現在</span>
+                                    <span class="text-sm text-gray-500">現在</span>
+                                </div>
+                                <h3 class="font-bold text-lg text-slate-800">現在の医療機関（要確認）</h3>
+                                <p class="text-sm text-slate-600 mt-2">
+                                    診断書作成依頼先。<br>
+                                    症状：外出不可、パニック、妄想、感情不安定。<br>
+                                    母子家庭、親は高齢で頼れない状況。
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- VIEW: TODO -->
+            <div id="view-todo" class="hidden max-w-5xl mx-auto space-y-6">
+                <div class="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
+                    <div class="flex justify-between items-center mb-6">
+                        <div>
+                            <h2 class="text-xl font-bold text-slate-800">アクションプラン (ToDo)</h2>
+                            <p class="text-slate-600 text-sm mt-1">社労士と相談者が協力して進めるタスクリストです。</p>
+                        </div>
+                        <div class="text-right">
+                            <span class="text-sm text-gray-500">進捗: </span>
+                            <span id="task-count" class="font-bold text-slate-800">0 / 6</span>
+                        </div>
+                    </div>
+
+                    <!-- Category 1: Investigation -->
+                    <div class="mb-8">
+                        <h3 class="text-sm uppercase text-slate-500 font-bold tracking-wider mb-3 border-b pb-1">STEP 1: 初診日・要件調査</h3>
+                        <div class="space-y-3">
+                            <div class="flex items-start p-3 hover:bg-slate-50 rounded-lg transition-colors border border-transparent hover:border-slate-200">
+                                <div class="flex items-center h-5">
+                                    <input id="task1" type="checkbox" class="task-checkbox w-5 h-5 text-blue-600 rounded border-gray-300 focus:ring-blue-500" onchange="updateProgress()">
+                                </div>
+                                <div class="ml-3 text-sm">
+                                    <label for="task1" class="font-medium text-slate-800 block cursor-pointer">【相談者】久保田内科への問い合わせ</label>
+                                    <p class="text-gray-500 text-xs mt-1">15年前のカルテ保管状況の確認。「受診状況等証明書」が作成可能か確認していただく。</p>
+                                </div>
+                                <span class="ml-auto bg-red-100 text-red-800 text-xs px-2 py-1 rounded-full whitespace-nowrap">最優先</span>
+                            </div>
+
+                            <div class="flex items-start p-3 hover:bg-slate-50 rounded-lg transition-colors border border-transparent hover:border-slate-200">
+                                <div class="flex items-center h-5">
+                                    <input id="task2" type="checkbox" class="task-checkbox w-5 h-5 text-blue-600 rounded border-gray-300 focus:ring-blue-500" onchange="updateProgress()">
+                                </div>
+                                <div class="ml-3 text-sm">
+                                    <label for="task2" class="font-medium text-slate-800 block cursor-pointer">【相談者】年金事務所での納付要件確認</label>
+                                    <p class="text-gray-500 text-xs mt-1">初診日時点での納付状況（第3号被保険者期間であること）をご自身で確認していただく。</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Category 2: Documents -->
+                    <div class="mb-8">
+                        <h3 class="text-sm uppercase text-slate-500 font-bold tracking-wider mb-3 border-b pb-1">STEP 2: 書類作成・診断書依頼</h3>
+                        <div class="space-y-3">
+                            <div class="flex items-start p-3 hover:bg-slate-50 rounded-lg transition-colors border border-transparent hover:border-slate-200">
+                                <div class="flex items-center h-5">
+                                    <input id="task3" type="checkbox" class="task-checkbox w-5 h-5 text-blue-600 rounded border-gray-300 focus:ring-blue-500" onchange="updateProgress()">
+                                </div>
+                                <div class="ml-3 text-sm">
+                                    <label for="task3" class="font-medium text-slate-800 block cursor-pointer">【社労士】現在の主治医へ診断書作成依頼</label>
+                                    <p class="text-gray-500 text-xs mt-1">「日常生活が困難であること（外出不可、パニック等）」を正確に反映してもらうよう、社労士から依頼を行う。</p>
+                                </div>
+                            </div>
+
+                            <div class="flex items-start p-3 hover:bg-slate-50 rounded-lg transition-colors border border-transparent hover:border-slate-200">
+                                <div class="flex items-center h-5">
+                                    <input id="task4" type="checkbox" class="task-checkbox w-5 h-5 text-blue-600 rounded border-gray-300 focus:ring-blue-500" onchange="updateProgress()">
+                                </div>
+                                <div class="ml-3 text-sm">
+                                    <label for="task4" class="font-medium text-slate-800 block cursor-pointer">【社労士・相談者】病歴・就労状況等申立書のヒアリング・作成</label>
+                                    <p class="text-gray-500 text-xs mt-1">発病から現在までの経過を詳細に記述。空白期間の整合性を取る。</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Category 3: Final -->
+                    <div>
+                        <h3 class="text-sm uppercase text-slate-500 font-bold tracking-wider mb-3 border-b pb-1">STEP 3: 申請・提出</h3>
+                        <div class="space-y-3">
+                            <div class="flex items-start p-3 hover:bg-slate-50 rounded-lg transition-colors border border-transparent hover:border-slate-200">
+                                <div class="flex items-center h-5">
+                                    <input id="task5" type="checkbox" class="task-checkbox w-5 h-5 text-blue-600 rounded border-gray-300 focus:ring-blue-500" onchange="updateProgress()">
+                                </div>
+                                <div class="ml-3 text-sm">
+                                    <label for="task5" class="font-medium text-slate-800 block cursor-pointer">【社労士】書類一式の最終チェック</label>
+                                    <p class="text-gray-500 text-xs mt-1">診断書と申立書の内容に矛盾がないか確認。</p>
+                                </div>
+                            </div>
+                            <div class="flex items-start p-3 hover:bg-slate-50 rounded-lg transition-colors border border-transparent hover:border-slate-200">
+                                <div class="flex items-center h-5">
+                                    <input id="task6" type="checkbox" class="task-checkbox w-5 h-5 text-blue-600 rounded border-gray-300 focus:ring-blue-500" onchange="updateProgress()">
+                                </div>
+                                <div class="ml-3 text-sm">
+                                    <label for="task6" class="font-medium text-slate-800 block cursor-pointer">【社労士】年金事務所へ提出</label>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                </div>
+            </div>
+
+            <!-- VIEW: NOTES -->
+            <div id="view-notes" class="hidden max-w-5xl mx-auto space-y-6">
+                <div class="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
+                    <h2 class="text-xl font-bold text-slate-800 mb-4">ヒアリング詳細メモ・申立書用素材</h2>
+                    <p class="text-slate-600 mb-6">「病歴・就労状況等申立書」作成時に重要となる、相談者の生活実態に関するキーワードです。</p>
+
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div class="bg-slate-50 p-5 rounded-lg">
+                            <h3 class="font-bold text-slate-700 mb-3 border-b border-slate-200 pb-2">現在の症状・日常生活の困難</h3>
+                            <ul class="list-disc list-inside text-sm text-slate-600 space-y-2">
+                                <li>知らない番号からの電話に恐怖を感じる。</li>
+                                <li>妄想がひどくなっている。</li>
+                                <li><strong>「部屋から一歩も外に出られない」</strong>状態がある。</li>
+                                <li>子供の前では気丈に振る舞うが、急に泣き出すことがある。</li>
+                                <li>感情のコントロールが困難。</li>
+                            </ul>
+                        </div>
+
+                        <div class="bg-slate-50 p-5 rounded-lg">
+                            <h3 class="font-bold text-slate-700 mb-3 border-b border-slate-200 pb-2">発病当時の状況（15年前）</h3>
+                            <ul class="list-disc list-inside text-sm text-slate-600 space-y-2">
+                                <li>前の夫（長距離トラック運転手）との関係性ストレス。</li>
+                                <li>ワンオペ育児による疲労困憊。</li>
+                                <li>夫からの長時間の電話による責め立て。</li>
+                                <li>当時は「精神科」という認識がなく、内科（久保田内科）を受診。</li>
+                                <li>眠れる薬（睡眠導入剤・安定剤）を求めて受診した。</li>
+                            </ul>
+                        </div>
+                        
+                        <div class="bg-slate-50 p-5 rounded-lg md:col-span-2">
+                            <h3 class="font-bold text-slate-700 mb-3 border-b border-slate-200 pb-2">社会的状況・背景</h3>
+                            <ul class="list-disc list-inside text-sm text-slate-600 space-y-2">
+                                <li>現在は母子家庭。</li>
+                                <li>親は高齢であり、頼ることが難しい状況。</li>
+                                <li>経済的自立への焦りと、病状による就労困難のジレンマ。</li>
+                                <li>友人からの情報で障害年金制度を知り、相談に至る。</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+        </main>
+    </div>
+
+    <script>
+        // State Management
+        let tasks = [
+            { id: 'task1', completed: false },
+            { id: 'task2', completed: false },
+            { id: 'task3', completed: false },
+            { id: 'task4', completed: false },
+            { id: 'task5', completed: false },
+            { id: 'task6', completed: false }
+        ];
+
+        let progressChartInstance = null;
+
+        // Init
+        document.addEventListener('DOMContentLoaded', () => {
+            initChart();
+            updateProgress(); // Initialize counts
+        });
+
+        // Navigation Logic
+        function switchView(viewId) {
+            // Hide all views
+            ['dashboard', 'timeline', 'todo', 'notes'].forEach(id => {
+                document.getElementById(`view-${id}`).classList.add('hidden');
+                const navBtn = document.getElementById(`nav-${id}`);
+                if (navBtn) navBtn.classList.remove('active');
+            });
+
+            // Show selected view
+            document.getElementById(`view-${viewId}`).classList.remove('hidden');
+            const activeNav = document.getElementById(`nav-${viewId}`);
+            if (activeNav) activeNav.classList.add('active');
+
+            // Refresh chart if dashboard is shown (to ensure correct size)
+            if (viewId === 'dashboard' && progressChartInstance) {
+                progressChartInstance.resize();
+            }
+        }
+
+        // Chart Logic
+        function initChart() {
+            const ctx = document.getElementById('progressChart').getContext('2d');
+            progressChartInstance = new Chart(ctx, {
+                type: 'doughnut',
+                data: {
+                    labels: ['完了', '未完了'],
+                    datasets: [{
+                        data: [0, 6],
+                        backgroundColor: [
+                            '#10b981', // Emerald 500
+                            '#e2e8f0'  // Slate 200
+                        ],
+                        borderWidth: 0,
+                        hoverOffset: 4
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            position: 'bottom',
+                            labels: {
+                                font: {
+                                    family: "'Noto Sans JP', sans-serif"
+                                }
+                            }
+                        },
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    return ` ${context.label}: ${context.raw} タスク`;
+                                }
+                            }
+                        }
+                    },
+                    cutout: '70%'
+                }
+            });
+        }
+
+        // Progress Logic
+        function updateProgress() {
+            const checkboxes = document.querySelectorAll('.task-checkbox');
+            let completedCount = 0;
+            const totalCount = checkboxes.length;
+
+            checkboxes.forEach(cb => {
+                if (cb.checked) completedCount++;
+            });
+
+            // Update Text
+            document.getElementById('task-count').textContent = `${completedCount} / ${totalCount}`;
+
+            // Update Chart
+            if (progressChartInstance) {
+                progressChartInstance.data.datasets[0].data = [completedCount, totalCount - completedCount];
+                progressChartInstance.update();
+            }
+        }
+    </script>
+</body>
+</html>
